@@ -1,11 +1,16 @@
+#pragma region VEXcode Generated Robot Configuration
+// Make sure all required headers are included.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
 
+
 #include "vex.h"
+
 using namespace vex;
+
 // Brain should be defined by default
 brain Brain;
 
@@ -28,29 +33,19 @@ brain Brain;
 
 // Helper to make playing sounds from the V5 in VEXcode easier and
 // keeps the code cleaner by making it clear what is happening.
-void playVexcodeSound(const char* soundName) {
+void playVexcodeSound(const char *soundName) {
     printf("VEXPlaySound:%s\n", soundName);
     wait(5, msec);
 }
 
 #pragma endregion VEXcode Generated Robot Configuration
-
-/*----------------------------------------------------------------------------*/
-/*                                                                            */
-/*    Module:       main.cpp                                                  */
-/*    Author:       {author}                                                  */
-/*    Created:      {date}                                                    */
-/*    Description:  V5 project                                                */
-/*                                                                            */
-/*----------------------------------------------------------------------------*/
-
 // Include the V5 Library
 #include "vex.h"
 
 // Allows for easier use of the VEX Library
 using namespace vex;
 
-int main() 
+int main()
 {
     printf("Ran emu\n");
     float t = 0;
@@ -64,10 +59,14 @@ int main()
         Brain.Screen.setFillColor({ 0,255,0 });
         Brain.Screen.drawRectangle(0, 0, 64, 64);
 
-        Brain.Screen.drawLine(64, 64, 128, 128);
+        Brain.Screen.setCursor(1,1);
+        Brain.Screen.setFillColor({0,0,0});
+        Brain.Screen.print("The quick brown fox jumped over the lazy dog.");
+
+        //Brain.Screen.drawLine(64, 64, 128, 128);
 
         t += 0.016f;
-        wait(0.016, seconds);
+        wait(16, msec);
     }
     return 0;
 }

@@ -1,3 +1,8 @@
 /bin/
 /out/
 /cmake-build-debug/
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+/.idea/VexSim.iml

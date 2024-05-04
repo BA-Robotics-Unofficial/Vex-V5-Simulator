@@ -2,10 +2,31 @@
 #include<SDL.h>
 #include<vector>
 #include<SDL_image.h>
+#include<string>
 
 using namespace vex;
 
 #include <iostream>
+
+// Function to extract Alpha component
+inline uint8_t getAlpha(uint32_t color) {
+    return (color >> 24) & 0xFF;
+}
+
+// Function to extract Red component
+inline uint8_t getRed(uint32_t color) {
+    return (color >> 16) & 0xFF;
+}
+
+// Function to extract Green component
+inline uint8_t getGreen(uint32_t color) {
+    return (color >> 8) & 0xFF;
+}
+
+// Function to extract Blue component
+inline uint8_t getBlue(uint32_t color) {
+    return color & 0xFF;
+}
 
 void brain::lcd::p_drawChar(SDL_Renderer* render, int x, int y, char c)
 {
@@ -22,6 +43,10 @@ void brain::lcd::p_drawChar(SDL_Renderer* render, int x, int y, char c)
     SDL_FRect dest = { (float)(x - m_origin_x), (float)(y - m_origin_y), 10, 20 };
 
     // Render the character
+    //Draw the background
+    SDL_SetRenderDrawColor(render, getRed(m_fill_color), getGreen(m_fill_color), getBlue(m_fill_color), getAlpha(m_fill_color));
+    SDL_RenderFillRect(render, &dest);
+
     SDL_RenderTexture(render, m_font, &src, &dest);
 }
 
@@ -64,26 +89,6 @@ void brain::lcd::p_drawLine(SDL_Renderer* render, int x1, int y1, int x2, int y2
 
 	// Render all rectangles at once
 	SDL_RenderFillRects(render, rects.data(), rects.size());
-}
-
-// Function to extract Alpha component
-inline uint8_t getAlpha(uint32_t color) {
-	return (color >> 24) & 0xFF;
-}
-
-// Function to extract Red component
-inline uint8_t getRed(uint32_t color) {
-	return (color >> 16) & 0xFF;
-}
-
-// Function to extract Green component
-inline uint8_t getGreen(uint32_t color) {
-	return (color >> 8) & 0xFF;
-}
-
-// Function to extract Blue component
-inline uint8_t getBlue(uint32_t color) {
-	return color & 0xFF;
 }
 
 //Color
@@ -171,6 +176,12 @@ void brain::lcd::clearScreen()
 	SDL_UnlockMutex(m_render_mutex);
 }
 
+void brain::lcd::setOrigin(i32 x, i32 y)
+{
+    m_origin_x = x;
+    m_origin_y = y - 32;
+}
+
 void brain::lcd::clearScreen(const color& c)
 {
 	SDL_LockMutex(m_render_mutex);
@@ -200,7 +211,7 @@ void brain::lcd::drawRectangle(i32 x, i32 y, i32 w, i32 h)
 	SDL_LockMutex(m_render_mutex);
 	SDL_FRect rect = {};
 	rect.x = x - m_origin_x;
-	rect.y = y - m_origin_y;
+	rect.y = y - (m_origin_y);
 	rect.w = w;
 	rect.h = h;
 
@@ -214,6 +225,13 @@ void brain::lcd::drawRectangle(i32 x, i32 y, i32 w, i32 h)
 	p_drawLine(m_renderer, x+w, y, x+w, y + h, m_pen_width);
 	SDL_UnlockMutex(m_render_mutex);
 }
+
+void brain::lcd::setCursor(i32 x, i32 y)
+{
+    m_row = y-1;
+    m_col = x-1;
+}
+
 void brain::lcd::print(const char *text, ...)
 {
     va_list args;
@@ -260,13 +278,47 @@ void brain::lcd::update()
 	}
 }
 
+std::string format_chars(const char* text, va_list args)
+{
+    char buffer[1024];
+    vsnprintf(buffer, sizeof(buffer), text, args);
+    return std::string(buffer);
+}
+
 bool brain::lcd::render()
 {
-    //Draw font texture debug
-    //Prints all characters in the font texture
-    m_row = 0;
-    m_col = 0;
-    print("The quick brown fox jumped over the lazy dog. ");
+    //Draw top bar
+    SDL_SetRenderDrawColor(m_renderer, 0, 153, 204, 255);
+    SDL_FRect topbar = { 0, 0, 480, 32 };
+    SDL_RenderFillRect(m_renderer, &topbar);
+
+    //Draw text
+    SDL_SetRenderDrawColor(m_renderer, 255, 255, 255, 255);
+    u32 old_color = m_fill_color;
+    m_fill_color = 0xff0099cc;
+    i32 x = 0;
+    i32 y = 0;
+    int seconds = (SDL_GetTicks()/1000)%60;
+    int minutes = (SDL_GetTicks()/1000)/60;
+
+    std::string tex = "Vex V5 Emulator          ";
+    if(seconds < 10)
+    {
+        tex += std::to_string(minutes) + ":0" + std::to_string(seconds);
+    }
+    else
+    {
+        tex += std::to_string(minutes) + ":" + std::to_string(seconds);
+    }
+    const char* text = tex.c_str();
+    for (int i = 0; i < strlen(text); i++)
+    {
+        p_drawChar(m_renderer, x+9, y-32+6, text[i]);
+        x += 10;
+    }
+
+    m_fill_color = old_color;
+
 	return SDL_RenderPresent(m_renderer);
 }
 

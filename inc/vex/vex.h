@@ -64,7 +64,7 @@ namespace vex
 			i32 m_pen_width = 1;
 
 			i32 m_origin_x;
-			i32 m_origin_y;
+			i32 m_origin_y = -32;
 
 			i32 m_pen_color;
 			i32 m_fill_color;
