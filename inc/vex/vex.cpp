@@ -7,6 +7,24 @@ using namespace vex;
 
 #include <iostream>
 
+void brain::lcd::p_drawChar(SDL_Renderer* render, int x, int y, char c)
+{
+    // Calculate the position of the character in the font texture
+    //The font is a long string of characters, so we need to calculate the position of the character in the string
+    f32 char_x = 0;
+    //The font texture is 10 pixels wide and 20 pixels tall
+    char_x = (f32)(c-1) * 10.0f;
+
+    // Create a rectangle to represent the character in the font texture
+    SDL_FRect src = { char_x, 0.0f, 10.0f, 20.0f };
+
+    // Create a rectangle to represent the position of the character on the screen
+    SDL_FRect dest = { (float)(x - m_origin_x), (float)(y - m_origin_y), 10, 20 };
+
+    // Render the character
+    SDL_RenderTexture(render, m_font, &src, &dest);
+}
+
 void brain::lcd::p_drawLine(SDL_Renderer* render, int x1, int y1, int x2, int y2, int w)
 {
 	int dx = abs(x2 - x1);
@@ -120,6 +138,9 @@ brain::lcd::lcd()
 	}
 
 	m_render_mutex = SDL_CreateMutex();
+
+    // Load font
+    m_font = IMG_LoadTexture(m_renderer, "res/font.png");
 }
 
 brain::lcd::~lcd()
@@ -193,6 +214,32 @@ void brain::lcd::drawRectangle(i32 x, i32 y, i32 w, i32 h)
 	p_drawLine(m_renderer, x+w, y, x+w, y + h, m_pen_width);
 	SDL_UnlockMutex(m_render_mutex);
 }
+void brain::lcd::print(const char *text, ...)
+{
+    va_list args;
+    va_start(args, text);
+    vsnprintf(m_textstr, sizeof(m_textstr), text, args);
+    va_end(args);
+
+    SDL_LockMutex(m_render_mutex);
+    SDL_SetRenderDrawColor(m_renderer, getRed(m_pen_color), getGreen(m_pen_color), getBlue(m_pen_color), getAlpha(m_pen_color));
+    int x = m_col * m_col_width;
+    int y = m_row * m_row_height;
+    for (int i = 0; i < strlen(m_textstr); i++)
+    {
+        if(m_textstr[i] == '\n')
+        {
+            m_row++;
+            m_col = 0;
+            x = m_col * m_col_width;
+            y = m_row * m_row_height;
+            continue;
+        }
+        p_drawChar(m_renderer, x, y, m_textstr[i]);
+        x += m_col_width;
+    }
+    SDL_UnlockMutex(m_render_mutex);
+}
 
 void brain::lcd::update()
 {
@@ -215,6 +262,11 @@ void brain::lcd::update()
 
 bool brain::lcd::render()
 {
+    //Draw font texture debug
+    //Prints all characters in the font texture
+    m_row = 0;
+    m_col = 0;
+    print("The quick brown fox jumped over the lazy dog. ");
 	return SDL_RenderPresent(m_renderer);
 }
 

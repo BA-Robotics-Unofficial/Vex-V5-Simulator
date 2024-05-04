@@ -1,6 +1,7 @@
 #pragma once
 #include"utils.h"
 #include<SDL.h>
+#include<SDL_image.h>
 namespace vex
 {
 	enum fontType
@@ -46,17 +47,18 @@ namespace vex
 		class lcd
 		{
 		private:
+            SDL_Texture* m_font;
 			SDL_Mutex* m_render_mutex;
 			SDL_Renderer* m_renderer;
 			SDL_Window* m_window;
 			//Console
 			i32 m_row;
 			i32 m_max_rows;
-			i32 m_row_height;
+			i32 m_row_height = 20;
 			i32 m_col;
 			i32 m_max_col;
-			i32 m_col_width;
-			char m_textstr[256];
+			i32 m_col_width = 10;
+			char m_textstr[48*24];
 
 			//Drawing
 			i32 m_pen_width = 1;
@@ -70,7 +72,7 @@ namespace vex
 			i32 rowToPixel(i32 row);
 			i32 colToPixel(i32 col);
 			void p_drawLine(SDL_Renderer* render, int x1, int y1, int x2, int y2, int w);
-
+            void p_drawChar(SDL_Renderer* render, int x, int y, char c);
 		public:
 			bool m_running;
 

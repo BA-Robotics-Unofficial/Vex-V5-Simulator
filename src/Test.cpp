@@ -64,10 +64,10 @@ int main()
         Brain.Screen.setFillColor({ 0,255,0 });
         Brain.Screen.drawRectangle(0, 0, 64, 64);
 
-        //Brain.Screen.drawLine(64, 64, 128, 128);
+        Brain.Screen.drawLine(64, 64, 128, 128);
 
         t += 0.016f;
-        wait(16, msec);
+        wait(0.016, seconds);
     }
     return 0;
 }
