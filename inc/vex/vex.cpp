@@ -40,13 +40,13 @@ void brain::lcd::p_drawChar(SDL_Renderer* render, int x, int y, char c)
     SDL_FRect src = { char_x, 0.0f, 10.0f, 20.0f };
 
     // Create a rectangle to represent the position of the character on the screen
-    SDL_FRect dest = { (float)(x - m_origin_x), (float)(y - m_origin_y), 10, 20 };
+    SDL_FRect dest = { (float)(x - m_origin_x), (float)(y - m_origin_y)+3, 10, 17 };
 
     // Render the character
     //Draw the background
     SDL_SetRenderDrawColor(render, getRed(m_fill_color), getGreen(m_fill_color), getBlue(m_fill_color), getAlpha(m_fill_color));
     SDL_RenderFillRect(render, &dest);
-
+    dest.y -= 2;
     SDL_RenderTexture(render, m_font, &src, &dest);
 }
 
@@ -146,6 +146,15 @@ brain::lcd::lcd()
 
     // Load font
     m_font = IMG_LoadTexture(m_renderer, "res/font.png");
+    if (m_font == nullptr)
+    {
+        SDL_Log("Unable to load font: %s", SDL_GetError());
+    }
+    m_icon = IMG_LoadTexture(m_renderer, "res/icon.png");
+    if (m_icon == nullptr)
+    {
+        SDL_Log("Unable to load icon: %s", SDL_GetError());
+    }
 }
 
 brain::lcd::~lcd()
@@ -228,8 +237,8 @@ void brain::lcd::drawRectangle(i32 x, i32 y, i32 w, i32 h)
 
 void brain::lcd::setCursor(i32 x, i32 y)
 {
-    m_row = y-1;
-    m_col = x-1;
+    m_row = x-1;
+    m_col = y-1;
 }
 
 void brain::lcd::print(const char *text, ...)
@@ -257,6 +266,12 @@ void brain::lcd::print(const char *text, ...)
         x += m_col_width;
     }
     SDL_UnlockMutex(m_render_mutex);
+}
+
+void brain::lcd::newLine()
+{
+    m_row++;
+    m_col = 0;
 }
 
 void brain::lcd::update()
@@ -287,6 +302,7 @@ std::string format_chars(const char* text, va_list args)
 
 bool brain::lcd::render()
 {
+    SDL_LockMutex(m_render_mutex);
     //Draw top bar
     SDL_SetRenderDrawColor(m_renderer, 0, 153, 204, 255);
     SDL_FRect topbar = { 0, 0, 480, 32 };
@@ -319,7 +335,14 @@ bool brain::lcd::render()
 
     m_fill_color = old_color;
 
-	return SDL_RenderPresent(m_renderer);
+    //Draw icon
+    SDL_FRect icon = { 480-36, 0, 32, 32 };
+    SDL_RenderTexture(m_renderer, m_icon, nullptr, &icon);
+
+    int res = SDL_RenderPresent(m_renderer);
+    SDL_UnlockMutex(m_render_mutex);
+	return res;
+
 }
 
 //Brain

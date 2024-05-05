@@ -42,12 +42,31 @@ void playVexcodeSound(const char *soundName) {
 // Include the V5 Library
 #include "vex.h"
 
+const char* getOsName()
+{
+#ifdef _WIN32
+    return "Windows 32-bit";
+#elif _WIN64
+    return "Windows 64-bit";
+    #elif __APPLE__ || __MACH__
+    return "Mac OSX";
+    #elif __linux__
+    return "Linux";
+    #elif __FreeBSD__
+    return "FreeBSD";
+    #elif __unix || __unix__
+    return "Unix";
+    #else
+    return "Other";
+#endif
+}
 // Allows for easier use of the VEX Library
 using namespace vex;
 
 int main()
 {
     printf("Ran emu\n");
+    printf("OS: %s\n",getOsName());
     float t = 0;
 
     while (1)
@@ -61,9 +80,11 @@ int main()
 
         Brain.Screen.setCursor(1,1);
         Brain.Screen.setFillColor({0,0,0});
-        Brain.Screen.print("The quick brown fox jumped over the lazy dog.");
-
-        //Brain.Screen.drawLine(64, 64, 128, 128);
+        Brain.Screen.print("The quick brown jumped over the lazy dog! %d", 9);
+        Brain.Screen.newLine();
+        Brain.Screen.newLine();
+        Brain.Screen.newLine();
+        Brain.Screen.print("Vex V5 Simulator");
 
         t += 0.016f;
         wait(16, msec);

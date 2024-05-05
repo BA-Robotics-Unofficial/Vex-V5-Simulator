@@ -48,13 +48,14 @@ namespace vex
 		{
 		private:
             SDL_Texture* m_font;
+            SDL_Texture* m_icon;
 			SDL_Mutex* m_render_mutex;
 			SDL_Renderer* m_renderer;
 			SDL_Window* m_window;
 			//Console
 			i32 m_row;
 			i32 m_max_rows;
-			i32 m_row_height = 20;
+			i32 m_row_height = 19;
 			i32 m_col;
 			i32 m_max_col;
 			i32 m_col_width = 10;
