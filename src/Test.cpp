@@ -73,8 +73,9 @@ int main()
     {
         Brain.Screen.clearScreen({0,0,0});
         Brain.Screen.setPenColor({ 255,255,255 });
+        Brain.Screen.setFillColor({ 255,255,0 });
         Brain.Screen.setPenWidth(4);
-        Brain.Screen.drawPixel(sinf(t)*64+240, cosf(t) * 64 + 136);
+        Brain.Screen.drawCircle(sinf(t)*128+240, cosf(t) * 128 + 136,32);
         Brain.Screen.setFillColor({ 0,255,0 });
         Brain.Screen.drawRectangle(0, 0, 64, 64);
 

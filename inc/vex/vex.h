@@ -23,6 +23,18 @@ namespace vex
 		seconds
 	};
 
+    class timer
+    {
+    private:
+        u32 m_offset;
+        u32 m_initial;
+    public:
+        timer();
+        ~timer();
+
+        void operator=(u32 value);
+    };
+
 	struct color
 	{
 	private:
@@ -74,6 +86,7 @@ namespace vex
 			i32 colToPixel(i32 col);
 			void p_drawLine(SDL_Renderer* render, int x1, int y1, int x2, int y2, int w);
             void p_drawChar(SDL_Renderer* render, int x, int y, char c);
+            void p_drawPixel(SDL_Renderer* render, int x, int y, int w);
 		public:
 			bool m_running;
 
@@ -83,6 +96,7 @@ namespace vex
 			//Console
 			void clearLine(i32 l);
 			void print(const char* text ...);
+            void printAt(int x, int y, const char* text ...);
 			void setCursor(i32 x, i32 y);
 			void setFont(fontType font);
 			void newLine();
@@ -108,6 +122,7 @@ namespace vex
 			bool render();
 		};
 	public:
+        static bool is_waiting;
 		lcd Screen = {};
 		brain();
 	};

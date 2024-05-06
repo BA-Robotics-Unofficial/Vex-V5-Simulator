@@ -8,6 +8,51 @@ using namespace vex;
 
 #include <iostream>
 
+bool vex::brain::is_waiting = false;
+
+//Color
+color::color()
+{
+    this->m_argb = 0xff000000;
+}
+
+color::color(u32 color)
+{
+    this->m_argb = color;
+}
+
+color::color(u8 r, u8 g, u8 b)
+{
+    this->m_argb = (static_cast<uint32_t>(255) << 24) | (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
+}
+
+u32 color::rgb() const
+{
+    return this->m_argb;
+}
+
+u32 color::rgb(u32 value)
+{
+    this->m_argb = value;
+    return this->m_argb;
+}
+
+u32 color::rgb(u8 r, u8 g, u8 b)
+{
+    this->m_argb = (static_cast<uint32_t>(255) << 24) | (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
+    return this->m_argb;
+}
+
+
+
+// Function to format a string
+std::string format_chars(const char* text, va_list args)
+{
+    char buffer[1024];
+    vsnprintf(buffer, sizeof(buffer), text, args);
+    return std::string(buffer);
+}
+
 // Function to extract Alpha component
 inline uint8_t getAlpha(uint32_t color) {
     return (color >> 24) & 0xFF;
@@ -26,6 +71,48 @@ inline uint8_t getGreen(uint32_t color) {
 // Function to extract Blue component
 inline uint8_t getBlue(uint32_t color) {
     return color & 0xFF;
+}
+
+
+
+//Brain LCD
+
+brain::lcd::lcd()
+{
+    int scale = 3;
+    m_running = true;
+    m_window = SDL_CreateWindow("Brain Screen", 480 * scale, 272 * scale, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    if (m_window == nullptr)
+    {
+        SDL_Log("Unable to create window: %s", SDL_GetError());
+    }
+
+    m_renderer = SDL_CreateRenderer(m_window, nullptr, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (m_renderer == nullptr)
+    {
+        SDL_Log("Unable to create renderer: %s", SDL_GetError());
+    }
+
+    SDL_SetRenderScale(m_renderer, 1.0f * scale, 1.0f * scale);
+
+    m_render_mutex = SDL_CreateMutex();
+
+    // Load font
+    m_font = IMG_LoadTexture(m_renderer, "res/font.png");
+    if (m_font == nullptr)
+    {
+        SDL_Log("Unable to load font: %s", SDL_GetError());
+    }
+    m_icon = IMG_LoadTexture(m_renderer, "res/icon.png");
+    if (m_icon == nullptr)
+    {
+        SDL_Log("Unable to load icon: %s", SDL_GetError());
+    }
+}
+
+brain::lcd::~lcd()
+{
+    SDL_DestroyWindow(m_window);
 }
 
 void brain::lcd::p_drawChar(SDL_Renderer* render, int x, int y, char c)
@@ -91,77 +178,13 @@ void brain::lcd::p_drawLine(SDL_Renderer* render, int x1, int y1, int x2, int y2
 	SDL_RenderFillRects(render, rects.data(), rects.size());
 }
 
-//Color
-color::color()
+void brain::lcd::p_drawPixel(SDL_Renderer* render, int x, int y, int w)
 {
-	this->m_argb = 0xff000000;
+    SDL_FRect rect = { (float)(x - w / 2), (float)(y - w / 2), (float)w, (float)w };
+    SDL_RenderFillRect(render, &rect);
 }
 
-color::color(u32 color)
-{
-	this->m_argb = color;
-}
-
-color::color(u8 r, u8 g, u8 b)
-{
-	this->m_argb = (static_cast<uint32_t>(255) << 24) | (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
-}
-
-u32 color::rgb() const
-{
-	return this->m_argb;
-}
-
-u32 color::rgb(u32 value)
-{
-	this->m_argb = value;
-	return this->m_argb;
-}
-
-u32 color::rgb(u8 r, u8 g, u8 b)
-{
-	this->m_argb = (static_cast<uint32_t>(255) << 24) | (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
-	return this->m_argb;
-}
-
-
-//Brain lcd
-
-brain::lcd::lcd()
-{
-	m_running = true;
-	m_window = SDL_CreateWindow("Brain Screen", 480, 272, SDL_WINDOW_HIGH_PIXEL_DENSITY);
-	if (m_window == nullptr)
-	{
-		SDL_Log("Unable to create window: %s", SDL_GetError());
-	}
-
-	m_renderer = SDL_CreateRenderer(m_window, nullptr, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (m_renderer == nullptr)
-	{
-		SDL_Log("Unable to create renderer: %s", SDL_GetError());
-	}
-
-	m_render_mutex = SDL_CreateMutex();
-
-    // Load font
-    m_font = IMG_LoadTexture(m_renderer, "res/font.png");
-    if (m_font == nullptr)
-    {
-        SDL_Log("Unable to load font: %s", SDL_GetError());
-    }
-    m_icon = IMG_LoadTexture(m_renderer, "res/icon.png");
-    if (m_icon == nullptr)
-    {
-        SDL_Log("Unable to load icon: %s", SDL_GetError());
-    }
-}
-
-brain::lcd::~lcd()
-{
-	SDL_DestroyWindow(m_window);
-}
-
+//Setters
 void brain::lcd::setPenColor(const color& c)
 {
 	m_pen_color = c.rgb();
@@ -177,18 +200,20 @@ void brain::lcd::setPenWidth(u32 w)
 	m_pen_width = w;
 }
 
+void brain::lcd::setOrigin(i32 x, i32 y)
+{
+    m_origin_x = x;
+    m_origin_y = y - 32;
+}
+
+//Drawing
+
 void brain::lcd::clearScreen()
 {
 	SDL_LockMutex(m_render_mutex);
 	SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
 	SDL_RenderClear(m_renderer);
 	SDL_UnlockMutex(m_render_mutex);
-}
-
-void brain::lcd::setOrigin(i32 x, i32 y)
-{
-    m_origin_x = x;
-    m_origin_y = y - 32;
 }
 
 void brain::lcd::clearScreen(const color& c)
@@ -235,6 +260,64 @@ void brain::lcd::drawRectangle(i32 x, i32 y, i32 w, i32 h)
 	SDL_UnlockMutex(m_render_mutex);
 }
 
+void brain::lcd::drawCircle(i32 x, i32 y, i32 r)
+{
+    //Draw outline
+    SDL_LockMutex(m_render_mutex);
+    SDL_SetRenderDrawColor(m_renderer, getRed(m_fill_color), getGreen(m_fill_color), getBlue(m_fill_color), getAlpha(m_fill_color));
+    int x1 = 0;
+    int y1 = r;
+    int d = 3 - 2 * r;
+    while (y1 >= x1)
+    {
+        p_drawLine(m_renderer, x - x1, y - y1, x + x1, y - y1, m_pen_width);
+        p_drawLine(m_renderer, x - y1, y - x1, x + y1, y - x1, m_pen_width);
+        p_drawLine(m_renderer, x - y1, y + x1, x + y1, y + x1, m_pen_width);
+        p_drawLine(m_renderer, x - x1, y + y1, x + x1, y + y1, m_pen_width);
+        if (d < 0)
+        {
+            d += 4 * x1 + 6;
+        }
+        else
+        {
+            d += 4 * (x1 - y1) + 10;
+            y1--;
+        }
+        x1++;
+    }
+
+    //draw fill
+    SDL_SetRenderDrawColor(m_renderer, getRed(m_pen_color), getGreen(m_pen_color), getBlue(m_pen_color), getAlpha(m_pen_color));
+    x1 = 0;
+    y1 = r;
+    d = 3 - 2 * r;
+    while (y1 >= x1)
+    {
+        p_drawPixel(m_renderer, x + x1, y+r - y1, m_pen_width);
+        p_drawPixel(m_renderer, x + y1, y+r - x1, m_pen_width);
+        p_drawPixel(m_renderer, x + y1, y+r + x1, m_pen_width);
+        p_drawPixel(m_renderer, x + x1, y+r + y1, m_pen_width);
+        p_drawPixel(m_renderer, x - x1, y+r + y1, m_pen_width);
+        p_drawPixel(m_renderer, x - y1, y+r + x1, m_pen_width);
+        p_drawPixel(m_renderer, x - y1, y+r - x1, m_pen_width);
+        p_drawPixel(m_renderer, x - x1, y+r - y1, m_pen_width);
+        if (d < 0)
+        {
+            d += 4 * x1 + 6;
+        }
+        else
+        {
+            d += 4 * (x1 - y1) + 10;
+            y1--;
+        }
+        x1++;
+    }
+
+    SDL_UnlockMutex(m_render_mutex);
+}
+
+//Console
+
 void brain::lcd::setCursor(i32 x, i32 y)
 {
     m_row = x-1;
@@ -268,11 +351,38 @@ void brain::lcd::print(const char *text, ...)
     SDL_UnlockMutex(m_render_mutex);
 }
 
+void brain::lcd::printAt(int x, int y, const char *text, ...)
+{
+    va_list args;
+    va_start(args, text);
+    vsnprintf(m_textstr, sizeof(m_textstr), text, args);
+    va_end(args);
+
+    SDL_LockMutex(m_render_mutex);
+    SDL_SetRenderDrawColor(m_renderer, getRed(m_pen_color), getGreen(m_pen_color), getBlue(m_pen_color), getAlpha(m_pen_color));
+    for (int i = 0; i < strlen(m_textstr); i++)
+    {
+        if(m_textstr[i] == '\n')
+        {
+            m_row++;
+            m_col = 0;
+            x = m_col * m_col_width;
+            y = m_row * m_row_height;
+            continue;
+        }
+        p_drawChar(m_renderer, x, y, m_textstr[i]);
+        x += m_col_width;
+    }
+    SDL_UnlockMutex(m_render_mutex);
+}
+
 void brain::lcd::newLine()
 {
     m_row++;
     m_col = 0;
 }
+
+//Managment
 
 void brain::lcd::update()
 {
@@ -291,13 +401,6 @@ void brain::lcd::update()
 			}
 		}
 	}
-}
-
-std::string format_chars(const char* text, va_list args)
-{
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), text, args);
-    return std::string(buffer);
 }
 
 bool brain::lcd::render()
@@ -345,18 +448,22 @@ bool brain::lcd::render()
 
 }
 
+
 //Brain
 brain::brain()
 {
 	
 }
 
+
 //miscelanious
 void vex::wait(double time, timeUnits unit)
 {
+    vex::brain::is_waiting = true;
 	if (unit == seconds)
 	{
 		time *= 1000;
 	}
 	SDL_Delay(time);
+    vex::brain::is_waiting = false;
 }

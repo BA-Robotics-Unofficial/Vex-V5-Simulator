@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
                 printf("SDL_CreateThread failed: %s\n", SDL_GetError());
             }
         }
+        while(vex::brain::is_waiting);
         SDL_Delay(1);
     }
 
